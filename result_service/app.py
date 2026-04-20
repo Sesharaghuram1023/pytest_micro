@@ -1,18 +1,41 @@
 from flask import Flask, jsonify
-from .service import get_result
-from exceptions import ResultCalculationException
 
 app = Flask(__name__)
 
+# dummy marks data (simulate marks_service)
+marks_db = {
+    1: [
+        {"subject": "Math", "marks": 90},
+        {"subject": "Science", "marks": 80}
+    ]
+}
+
+
+@app.route("/")
+def home():
+    return "Result Service Running 🚀"
+
 
 @app.route("/result/<int:student_id>", methods=["GET"])
-def result(student_id):
+def get_result(student_id):
 
-    try:
-        return jsonify(get_result(student_id))
+    if student_id not in marks_db:
+        return jsonify({"error": "No marks found"}), 404
 
-    except ResultCalculationException as e:
-        return jsonify({"error": str(e)}), 500
+    marks_list = marks_db[student_id]
+
+    total = sum(item["marks"] for item in marks_list)
+    count = len(marks_list)
+    average = total / count
+
+    result = {
+        "student_id": student_id,
+        "total": total,
+        "average": average,
+        "result": "Pass" if average >= 40 else "Fail"
+    }
+
+    return jsonify(result)
 
 
 if __name__ == "__main__":

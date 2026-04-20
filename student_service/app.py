@@ -1,34 +1,55 @@
 from flask import Flask, request, jsonify
-from .service import add_student, get_students, get_student
-from exceptions import StudentNotFoundException
 
 app = Flask(__name__)
 
+# In-memory storage
+students_db = {}
 
+
+# Home route
+@app.route("/")
+def home():
+    return "Student Service Running 🚀"
+
+
+# Add student
 @app.route("/students", methods=["POST"])
 def create_student():
-
     data = request.json
-    student = add_student(data["id"], data["name"])
 
-    return jsonify(student)
+    student_id = data.get("id")
+    name = data.get("name")
+
+    if not student_id or not name:
+        return jsonify({"error": "Missing fields"}), 400
+
+    if student_id in students_db:
+        return jsonify({"error": "Student already exists"}), 400
+
+    students_db[student_id] = {
+        "id": student_id,
+        "name": name
+    }
+
+    return jsonify(students_db[student_id])
 
 
+# Get all students
 @app.route("/students", methods=["GET"])
-def students():
+def get_all_students():
+    return jsonify(list(students_db.values()))
 
-    return jsonify(get_students())
 
-
+# Get single student
 @app.route("/students/<int:student_id>", methods=["GET"])
-def student(student_id):
+def get_single_student(student_id):
 
-    try:
-        return jsonify(get_student(student_id))
+    if student_id not in students_db:
+        return jsonify({"error": "Student not found"}), 404
 
-    except StudentNotFoundException as e:
-        return jsonify({"error": str(e)}), 404
+    return jsonify(students_db[student_id])
 
 
+# Run app
 if __name__ == "__main__":
     app.run(port=5000, debug=True)
